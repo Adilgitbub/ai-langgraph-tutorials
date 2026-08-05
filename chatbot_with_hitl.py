@@ -2,7 +2,7 @@
 
 from langgraph.graph import StateGraph, START
 from typing import TypedDict, Annotated
-from langchain_core.messages import BaseMessage, HumanMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.message import add_messages
@@ -17,7 +17,21 @@ load_dotenv()
 # -------------------
 # 1. LLM
 # -------------------
-llm = ChatOpenAI()
+llm = ChatOpenAI(
+     base_url="http://localhost:12434/engines/v1",
+    api_key="not-needed",
+    # model="ai/llama3.2:3B-Q4_K_M",
+    model="ai/gemma4:E4B",
+    # temperature=0
+)
+
+SYSTEM_PROMPT = SystemMessage(content=(
+    "You are a helpful assistant. You have access to tools for stock prices "
+    "and stock purchases. Only call a tool when the user explicitly asks for "
+    "a stock price or explicitly asks to buy/purchase a stock with a clear "
+    "symbol and quantity. For greetings, small talk, or general questions, "
+    "reply normally in plain text and do NOT call any tool."
+))
 
 # -------------------
 # 2. Tools
@@ -29,8 +43,7 @@ def get_stock_price(symbol: str) -> dict:
     using Alpha Vantage with API key in the URL.
     """
     url = (
-        "https://www.alphavantage.co/query"
-        f"?function=GLOBAL_QUOTE&symbol={symbol}&apikey=C9PE94QUEW9VWGFM"
+        f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey=C9PE94QUEW9VWGFM"
     )
     r = requests.get(url)
     return r.json()
@@ -78,7 +91,7 @@ class ChatState(TypedDict):
 # 4. Nodes
 # -------------------
 def chat_node(state: ChatState):
-    """LLM node that may answer or request a tool call."""
+    """LLM node that will  answer or request a tool call if user explicitly mentioned """
     messages = state["messages"]
     response = llm_with_tools.invoke(messages)
     return {"messages": [response]}
@@ -102,7 +115,7 @@ graph.add_edge(START, "chat_node")
 graph.add_conditional_edges("chat_node", tools_condition)
 graph.add_edge("tools", "chat_node")
 
-chatbot = graph.compile(checkpointer=memory)
+chat_graph = graph.compile(checkpointer=memory)
 
 # -------------------
 # 7. Simple usage example (CLI with HITL)
@@ -110,7 +123,7 @@ chatbot = graph.compile(checkpointer=memory)
 if __name__ == "__main__":
     
     # Use a fixed thread_id so the conversation is persisted in memory
-    thread_id = "demo-thread"
+    thread_id = "demo-thread1"
 
     while True:
         user_input = input("You: ")
@@ -122,10 +135,11 @@ if __name__ == "__main__":
         state = {"messages": [HumanMessage(content=user_input)]}
 
         # Run the graph (may hit an interrupt)
-        result = chatbot.invoke(
+        result = chat_graph.invoke(
             state,
             config={"configurable": {"thread_id": thread_id}},
         )
+        # print(f"result ................... {result}")
 
         # Check for HITL interrupt from purchase_stock
         interrupts = result.get("__interrupt__", [])
@@ -137,7 +151,7 @@ if __name__ == "__main__":
             decision = input("Your decision: ").strip().lower()
 
             # Resume graph with the human decision ("yes" / "no" / whatever)
-            result = chatbot.invoke(
+            result = chat_graph.invoke(
                 Command(resume=decision),
                 config={"configurable": {"thread_id": thread_id}},
             )
