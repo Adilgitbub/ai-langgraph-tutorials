@@ -1,5 +1,6 @@
 # %%
 import base64
+import re
 
 from jinja2 import Template
 from langchain_core.messages import HumanMessage
@@ -50,6 +51,13 @@ class ComposeHtmlOutput(BaseModel):
         description="List of {'text': exact phrase, 'color': css color like 'yellow' or 'cyan'} based on highlight colors seen in the snap."
     )
 
+class StyledHtmlOutput(BaseModel):
+    styled_html: str = Field(
+        description="The exact same HTML provided, with <b>...</b> and "
+                    "<span style=\"background-color:COLOR\">...</span> tags inserted "
+                    "around phrases that appear bold/highlighted in the reference screenshot. "
+                    "Do not change, add, or remove any wording — only insert styling tags."
+    )
 
 
 #  ----------------- LLM's  ----------------  
@@ -131,20 +139,48 @@ EMAIL_TEMPLATE = Template("""
 </body>
 </html>
 """)
-def _apply_styling(html: str, bold_phrases: list[str], highlighted: list[dict]) -> str:
-    for phrase in bold_phrases:
-        if phrase and phrase in html:
-            html = html.replace(phrase, f"<b>{phrase}</b>")
-    for h in highlighted:
-        text, color = h.get("text"), h.get("color", "yellow")
-        if text and text in html:
-            html = html.replace(text, f'<span style="background-color:{color}">{text}</span>')
-    return html
+# def _apply_styling(html: str, bold_phrases: list[str], highlighted: list[dict]) -> str:
+#     for phrase in bold_phrases:
+#         if phrase and phrase in html:
+#             html = html.replace(phrase, f"<b>{phrase}</b>")
+#     for h in highlighted:
+#         text, color = h.get("text"), h.get("color", "yellow")
+#         if text and text in html:
+#             html = html.replace(text, f'<span style="background-color:{color}">{text}</span>')
+#     return html
+def _strip_tags(html: str) -> str:
+    return " ".join(re.sub(r"<[^>]+>", "", html).split())
+
+def apply_snap_styling(body_html: str, snap_path: str) -> str:
+    print(f'----------------------------------- {snap_path}')
+    img_b64 = _encode_image(snap_path)
+    content_blocks = [
+        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}},
+        {"type": "text", "text": (
+            "Here is an HTML email body:\n\n" + body_html +
+            "\n\nLooking at the reference screenshot above, add <b> tags around bold text "
+            "also add <span style=\"background-color:COLOR\"> tags around highlighted text wherever applicable based on refernce screenshot shared, "
+            "matching the styling shown. Return the full HTML with tags inserted. "
+            "Do not alter the wording in any way."
+        )}
+    ]
+    result: StyledHtmlOutput = gamma_model.with_structured_output(StyledHtmlOutput).invoke(
+        [HumanMessage(content=content_blocks)]
+    )
+
+    # safety check: make sure the model didn't sneak in wording changes
+    if _strip_tags(result.styled_html) == _strip_tags(body_html):
+        return result.styled_html
+    else:
+        print("⚠️ Styling step altered wording — falling back to unstyled HTML")
+        return body_html
 
 def compose_html(state: EmailState):
     has_image = bool(state.get("embed_image_path"))
     placement_instruction = state.get("image_placement") or "at the end, before the sign-off"
+    state['client_snap_path']='uploads/0feef4d5/client_snap.png'
     use_snap = bool(state.get("client_snap_path")) and state.get("use_snap_as_template", True)
+    
 
     prompt = (
         "Convert the following plain text email into clean HTML using <p> tags for each paragraph. "
@@ -153,23 +189,25 @@ def compose_html(state: EmailState):
            if has_image else "Do not include any image marker.\n\n")
         + f"Email text:\n{state['email_content']}"
     )
-
-    if use_snap:
-        img_b64 = _encode_image(state["client_snap_path"])
-        content_blocks = [
-            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}},
-            {"type": "text", "text": (
-                prompt +
-                "\n\nAlso look at the reference screenshot above: identify which exact phrases are "
-                "bold, and which are highlighted (and in what color). List those separately — "
-                "do not embed styling tags directly in body_html."
-            )}
-        ]
-        result: ComposeHtmlOutput = gamma_model.with_structured_output(ComposeHtmlOutput).invoke([HumanMessage(content=content_blocks)])
-    else:
-        result: ComposeHtmlOutput = lamma_model.with_structured_output(ComposeHtmlOutput).invoke([HumanMessage(content=prompt)])
-
+    print(f"this is the snap path ......... {state['client_snap_path']}")
+ 
+    # if use_snap:
+    #     img_b64 = _encode_image(state["client_snap_path"])
+    #     content_blocks = [
+    #         {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}},
+    #         {"type": "text", "text": (
+    #             prompt +
+    #             "\n\nAlso look at the reference screenshot above: identify which exact phrases are "
+    #             "bold, and which are highlighted (and in what color). List those separately — "
+    #             "do not embed styling tags directly in body_html."
+    #         )}
+    #     ]
+    #     result: ComposeHtmlOutput = gamma_model.with_structured_output(ComposeHtmlOutput).invoke([HumanMessage(content=content_blocks)])
+    # else:
+    # always use llama for base structure — fast, no image needed here anymore
+    result: ComposeHtmlOutput = gamma_model.with_structured_output(ComposeHtmlOutput).invoke([HumanMessage(content=prompt)])
     body_html = result.body_html
+   
 
     if has_image:
         image_filename = os.path.basename(state["embed_image_path"])
@@ -182,8 +220,10 @@ def compose_html(state: EmailState):
     else:
         body_html = body_html.replace("{{IMAGE_HERE}}", "")  # safety strip
 
+    # if use_snap:
+    #     body_html = _apply_styling(body_html, result.bold_phrases, result.highlighted_phrases)    
     if use_snap:
-        body_html = _apply_styling(body_html, result.bold_phrases, result.highlighted_phrases)    
+        body_html = apply_snap_styling(body_html, state["client_snap_path"])
 
     final_html = EMAIL_TEMPLATE.render(body_html=body_html)
     return {"email_content": final_html}

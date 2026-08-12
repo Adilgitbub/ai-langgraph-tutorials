@@ -1,7 +1,7 @@
 # test_intake_app.py
 import streamlit as st
 import os, uuid
-from automate_announcement import intake
+from automate_email.automate_announcement import intake
 
 st.title("Newsletter Intake — Test Harness")
 

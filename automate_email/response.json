@@ -100,4 +100,18 @@
  {'input': 'Hi chatbot please publish below mail notification to following users \nbcc = adil.shaikh@sourcefuse.com,abcd@sourcefuse.com,xyz@sourcefuse.com,adil.shaikh@sourcefuse.com,abcd@sourcefuse.com,xyz@sourcefuse.com\n\nEmail body :\n\n\nHi everyone,\n\nPlease be advised that all office servers will be completely shut off on November 22 for scheduled maintenance.\n\nDuring this period, server access and related local services will be unavailable. Please plan your work and save any critical files in advance.\n\nThank you for your cooperation.\n\nBest regards,\n\nAadil Shaikh,\n[IT Department]\n\nsubject Important: Office Server Shutdown on November 22\n\nreference how should look visually \nhave attached below ', 'client_snap_path': './uploads/96375cbd\\client_snap.png', 'embed_image_path': None, 'bcc': None, 'subject': None}
 
 --- INTAKE OUTPUT ---
- {'needs_clarification': False, 'subject': 'Important: Office Server Shutdown on November 22', 'bcc': ['adil.shaikh@sourcefuse.com', 'abcd@sourcefuse.com', 'xyz@sourcefuse.com'], 'email_content': 'Hi everyone,\n\nPlease be advised that all office servers will be completely shut off on November 22 for scheduled maintenance.\n\nDuring this period, server access and related local services will be unavailable. Please plan your work and save any critical files in advance.\n\nThank you for your cooperation.\n\nBest regards,\n\nAadil Shaikh,\n[IT Department]', 'image_placement': 'No embedded image was explicitly mentioned in the request body. If a visual banner or logo is required, it should be placed at the top of the email body.', 'use_snap_as_template': True}
+ {'needs_clarification': False,
+  'subject': 'Important: Office Server Shutdown on November 22', 
+  'bcc': ['adil.shaikh@sourcefuse.com', 'abcd@sourcefuse.com', 'xyz@sourcefuse.com'],
+   'email_content': 'Hi everyone,\n\nPlease be advised that all office servers will be completely shut off on November 22 for scheduled maintenance.\n\nDuring this period, server access and related local services will be unavailable. Please plan your work and save any critical files in advance.\n\nThank you for your cooperation.\n\nBest regards,\n\nAadil Shaikh,\n[IT Department]', 
+   'image_placement': 'No embedded image was explicitly mentioned in the request body. If a visual banner or logo is required, it should be placed at the top of the email body.',
+    'use_snap_as_template': True}
+
+
+    -- INTAKE OUTPUT ---
+ {'needs_clarification': False,
+  'subject': 'Important: Office Server Shutdown on November 22',
+   'bcc': ['adil.shaikh@sourcefuse.com', 'abcd@sourcefuse.com', 'xyz@sourcefuse.com'], 
+   'email_content': 'Hi everyone,\n\nPlease be advised that all office servers will be completely shut off on November 22 for scheduled maintenance.\n\nDuring this period, server access and related local services will be unavailable. Please plan your work and save any critical files in advance.\n\nThank you for your cooperation.\n\nBest regards,\n\nAadil Shaikh,\n[IT Department]',
+    'image_placement': None, 
+    'use_snap_as_template': True}
