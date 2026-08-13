@@ -1,7 +1,7 @@
 # test_intake_app.py
 import streamlit as st
 import os, uuid
-from automate_email.automate_announcement import intake
+from automate_announcement import intake,workflow
 
 st.title("Newsletter Intake — Test Harness")
 
@@ -36,7 +36,9 @@ if st.button("Send"):
     }
 
     print("\n--- INTAKE INPUT ---\n", initial_state)
-    result = intake(initial_state)
+    
+    result= workflow.invoke(initial_state);
+    # result = intake(initial_state)
     print("\n--- INTAKE OUTPUT ---\n", result)
 
     if result.get("needs_clarification"):

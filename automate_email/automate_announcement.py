@@ -1,9 +1,12 @@
 # %%
 import base64
+import os
 import re
+import time
 
 from jinja2 import Template
 from langchain_core.messages import HumanMessage
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, START, END
 from typing import List, TypedDict, Literal, Optional
@@ -61,10 +64,16 @@ class StyledHtmlOutput(BaseModel):
 
 
 #  ----------------- LLM's  ----------------  
-gamma_model = ChatOpenAI(
+gamma_model1 = ChatOpenAI(
     base_url="http://localhost:12434/engines/v1",
     api_key="not-needed",
     model="ai/gemma4:E4B"
+)
+
+gamma_model = ChatGoogleGenerativeAI(
+    model=os.getenv("GOOGLE_MODEL", "gemini-3.6-flash"),
+    google_api_key=os.getenv("GOOGLE_API_KEY"),
+    max_retries=2  # Prevents LangChain from spamming retries if it hits a snag
 )
 
 lamma_model = ChatOpenAI(
@@ -102,8 +111,8 @@ def intake(state: EmailState):
     )
     content_blocks.append({"type": "text", "text": instruction})
 
-    result: EmailIntakeExtraction = gamma_model.with_structured_output(EmailIntakeExtraction).invoke([HumanMessage(content=content_blocks)])
-
+    result: EmailIntakeExtraction = gamma_model1.with_structured_output(EmailIntakeExtraction).invoke([HumanMessage(content=content_blocks)])
+    time.sleep(5)
     # merge: explicit values already in state win over what the LLM extracted
     bcc = result.bcc
     subject = result.subject
@@ -164,10 +173,10 @@ def apply_snap_styling(body_html: str, snap_path: str) -> str:
             "Do not alter the wording in any way."
         )}
     ]
-    result: StyledHtmlOutput = gamma_model.with_structured_output(StyledHtmlOutput).invoke(
+    result: StyledHtmlOutput = gamma_model1.with_structured_output(StyledHtmlOutput).invoke(
         [HumanMessage(content=content_blocks)]
     )
-
+    time.sleep(5)
     # safety check: make sure the model didn't sneak in wording changes
     if _strip_tags(result.styled_html) == _strip_tags(body_html):
         return result.styled_html
@@ -178,7 +187,7 @@ def apply_snap_styling(body_html: str, snap_path: str) -> str:
 def compose_html(state: EmailState):
     has_image = bool(state.get("embed_image_path"))
     placement_instruction = state.get("image_placement") or "at the end, before the sign-off"
-    state['client_snap_path']='uploads/0feef4d5/client_snap.png'
+    # state['client_snap_path']='uploads/0feef4d5/client_snap.png'
     use_snap = bool(state.get("client_snap_path")) and state.get("use_snap_as_template", True)
     
 
@@ -205,10 +214,10 @@ def compose_html(state: EmailState):
     #     result: ComposeHtmlOutput = gamma_model.with_structured_output(ComposeHtmlOutput).invoke([HumanMessage(content=content_blocks)])
     # else:
     # always use llama for base structure — fast, no image needed here anymore
-    result: ComposeHtmlOutput = gamma_model.with_structured_output(ComposeHtmlOutput).invoke([HumanMessage(content=prompt)])
+    result: ComposeHtmlOutput = gamma_model1.with_structured_output(ComposeHtmlOutput).invoke([HumanMessage(content=prompt)])
     body_html = result.body_html
    
-
+    time.sleep(5)
     if has_image:
         image_filename = os.path.basename(state["embed_image_path"])
         img_tag = f'<img src="{image_filename}" alt="embedded image" style="max-width:100%; margin:12px 0;">'
@@ -293,20 +302,20 @@ email_graph.add_node("confirm_log", confirm_log)
 
 email_graph.add_edge(START, "intake")
 email_graph.add_edge("intake", "compose_html")
-email_graph.add_edge("compose_html", "auto_review")
-email_graph.add_conditional_edges(
-    "auto_review", route_evaluation, {"pass": "test_send_human", "failed": "optimize"}
-)
-email_graph.add_edge("optimize", "auto_review")
-email_graph.add_edge("test_send_human", "human_review")
-email_graph.add_conditional_edges(
-    "human_review", route_decision, {"approve": "publish", "reject": "manual_handling"}
-)
-email_graph.add_edge("publish", "confirm_log")
-email_graph.add_edge("manual_handling", END)
-email_graph.add_edge("confirm_log", END)
+email_graph.add_edge("compose_html", END)
+# email_graph.add_edge("compose_html", "auto_review")
+# email_graph.add_conditional_edges(
+#     "auto_review", route_evaluation, {"pass": "test_send_human", "failed": "optimize"}
+# )
+# email_graph.add_edge("optimize", "auto_review")
+# email_graph.add_edge("test_send_human", "human_review")
+# email_graph.add_conditional_edges(
+#     "human_review", route_decision, {"approve": "publish", "reject": "manual_handling"}
+# )
+# email_graph.add_edge("publish", "confirm_log")
+# email_graph.add_edge("manual_handling", END)
+# email_graph.add_edge("confirm_log", END)
 
 workflow = email_graph.compile()
-workflow
 
-Image(workflow.get_graph().draw_mermaid_png())
+# Image(workflow.get_graph().draw_mermaid_png())
