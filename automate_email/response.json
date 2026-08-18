@@ -115,3 +115,6 @@
    'email_content': 'Hi everyone,\n\nPlease be advised that all office servers will be completely shut off on November 22 for scheduled maintenance.\n\nDuring this period, server access and related local services will be unavailable. Please plan your work and save any critical files in advance.\n\nThank you for your cooperation.\n\nBest regards,\n\nAadil Shaikh,\n[IT Department]',
     'image_placement': None, 
     'use_snap_as_template': True}
+
+
+    auto review response pass 80 'Please plan your work and save any critical files in advance.' should have a cyan/light blue background highlight instead of yellow, and it should not be bold.
