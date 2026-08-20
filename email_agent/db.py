@@ -1,5 +1,6 @@
 import secrets
 import sqlite3
+from langgraph.checkpoint.sqlite import SqliteSaver
 
 def create_review_token(thread_id: str) -> str:
     token = secrets.token_urlsafe(16)
@@ -10,6 +11,5 @@ def create_review_token(thread_id: str) -> str:
     return token
 
 def get_checkpointer():
-    conn = sqlite3.connect("checkpoints.db", check_same_thread=False)
-    from langgraph.checkpoint.sqlite import SqliteSaver
+    conn = sqlite3.connect("checkpoints.db", check_same_thread=False) 
     return SqliteSaver(conn)

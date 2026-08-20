@@ -1,4 +1,5 @@
-from graph import build_graph
+
+from nodes.graph import build_graph
 from db import create_review_token
 
 def main():
@@ -14,6 +15,7 @@ def main():
         "max_iteration": 3,
         "published": False,
         "use_snap_as_template": False,
+        'subject':'publish newslettter'
     }
 
     result = workflow.invoke(
