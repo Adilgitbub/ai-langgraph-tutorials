@@ -7,6 +7,7 @@ def test_send_human(state: EmailState, config: RunnableConfig):
     thread_id = config["configurable"]["thread_id"]
     token = create_review_token(thread_id)
     # TODO: include approve/reject links built from token in email body
+    print(f"use this token for approve and reject {token}")
     return {}
 
 def human_review(state: EmailState):

@@ -14,4 +14,5 @@ def manual_handling(state: EmailState):
 
 def confirm_log(state: EmailState):
     # TODO: log final outcome
+    print("published finished .........!!!!")
     return {}
