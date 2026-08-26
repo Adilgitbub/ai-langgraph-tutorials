@@ -35,7 +35,7 @@ def auto_review(state: EmailState):
             "List specific issues in feedback."
         )
         result: ReviewOutput = (
-            lamma_model
+            gamma_model1
             .with_structured_output(ReviewOutput)
             .invoke([HumanMessage(content=prompt)])
         )
@@ -50,38 +50,3 @@ def route_evaluation(state: EmailState):
     if state["evaluate"] == "pass" or state["iteration"] >= state["max_iteration"]:
         return "pass"
     return "failed"
-
-def optimize(state: EmailState):
-    use_snap = bool(state.get("client_snap_path")) and state.get("use_snap_as_template", True)
-    feedback = state["review_feedback"]
-    print(f"Feedback from reviewer: {feedback}")
-
-    prompt = (
-        "Here is the current HTML email:\n\n" + state["html_body"] +
-        f"\n\nA reviewer found these issues: {feedback}\n\n"
-        "Fix ONLY these specific issues. Do not change anything else — preserve all correct wording, "
-        "structure, and styling that isn't mentioned as a problem. Return the full corrected HTML."
-    )
-
-    if use_snap:
-        img_b64 = _encode_image(state["client_snap_path"])
-        content_blocks = [
-            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}},
-            {"type": "text", "text": prompt}
-        ]
-        result: ComposeHtmlOutput = (
-            gamma_model1
-            .with_structured_output(ComposeHtmlOutput)
-            .invoke([HumanMessage(content=content_blocks)])
-        )
-    else:
-        result: ComposeHtmlOutput = (
-            lamma_model
-            .with_structured_output(ComposeHtmlOutput)
-            .invoke([HumanMessage(content=prompt)])
-        )
-
-    return {
-        "html_body": result.body_html,
-        "iteration": state["iteration"] + 1
-    }

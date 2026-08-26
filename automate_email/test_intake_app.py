@@ -2,6 +2,7 @@
 import streamlit as st
 import os, uuid
 from automate_announcement import intake,workflow
+from email_agent.nodes.graph import build_graph
 
 st.title("Newsletter Intake — Test Harness")
 
@@ -37,8 +38,9 @@ if st.button("Send"):
 
     print("\n--- INTAKE INPUT ---\n", initial_state)
     
-    result= workflow.invoke(initial_state);
+    # result= workflow.invoke(initial_state);
     # result = intake(initial_state)
+    build_graph().invoke(initial_state, config={"configurable": {"thread_id": thread_id}})
     print("\n--- INTAKE OUTPUT ---\n", result)
 
     if result.get("needs_clarification"):

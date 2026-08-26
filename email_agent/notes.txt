@@ -1,0 +1,10 @@
+curl -X POST http://localhost:5000/send-email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "recipient_emails": ["adilshaikhdada@gmail.com", "adilshaikhdada1@gmail.com"],
+    "subject": "Team Notification",
+    "body": "This is a notification to the team.",
+    "cc_emails": ["adilshaikh5991@gmail.com"]
+  }'
+
+ curl -X POST http://localhost:5000/send-email -H "Content-Type: application/json" -d "{\"recipient_emails\": [\"adilshaikhdada@gmail.com\", \"adilshaikhdada1@gmail.com\"], \"subject\": \"My love \", \"body\": \"hum mar jaunga , apna hath kaat luga agar nahi mili to , Anjum ko roz pakadta ho lekin tumhar pata nahi batati , ek baar pata chal jai , hum aaige baat kerege sasural me , hamari jaan , ek baar dubai kya gai sadi karli , aur phone kiya to block kar diya \", \"cc_emails\": [\"adilshaikh5991@gmail.com\"]}"     
