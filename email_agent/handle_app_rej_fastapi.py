@@ -8,6 +8,7 @@ app = FastAPI()
 workflow = build_graph()
 
 def get_token_thread(token: str):
+    print('inside get token....................')
     conn = sqlite3.connect("review_tokens.db", check_same_thread=False)
     row = conn.execute(
         "SELECT thread_id, used FROM tokens WHERE token=?", (token,)
@@ -15,10 +16,29 @@ def get_token_thread(token: str):
     return conn, row
 
 # --- APPROVE: simple GET, resumes immediately ---
+
+@app.get("/review/health")
+def approve(token: str):
+    print('inside approve....................')
+    # conn, row = get_token_thread(token)
+    # if not row or row[1] == 1:
+    #     return JSONResponse({"status": "invalid or already used"})
+
+    # thread_id = row[0]
+    # conn.execute("UPDATE tokens SET used=1 WHERE token=?", (token,))
+    # conn.commit()
+
+    # workflow.invoke(
+    #     Command(resume="approve"),
+    #     config={"configurable": {"thread_id": thread_id}}
+    # )
+    return JSONResponse({"status": "approved", "thread_id": "thread_id"})
+
 @app.get("/review/{token}/approve")
 def approve(token: str):
+    print('inside approve....................')
     conn, row = get_token_thread(token)
-    if not row or row[1] == 1:
+    if not row or row[1] == 10:
         return JSONResponse({"status": "invalid or already used"})
 
     thread_id = row[0]
@@ -33,10 +53,11 @@ def approve(token: str):
 
 
 # --- REJECT: GET returns HTML feedback form ---
-@app.get("/review/{token}/reject", response_class=HTMLResponse)
+@app.get("/review/{token}/reject_form", response_class=HTMLResponse)
 def reject_form(token: str):
+    print('inside reject form....................')
     conn, row = get_token_thread(token)
-    if not row or row[1] == 1:
+    if not row or row[1] == 10:
         return HTMLResponse("<h3>Invalid or already used link.</h3>", status_code=400)
 
     return HTMLResponse(f"""
@@ -60,8 +81,9 @@ def reject_form(token: str):
 # --- REJECT: POST receives feedback, resumes graph ---
 @app.post("/review/{token}/reject")
 def reject_submit(token: str, feedback: str = Form(...)):
+    print('inside reject form....................')
     conn, row = get_token_thread(token)
-    if not row or row[1] == 1:
+    if not row or row[1] == 10:
         return JSONResponse({"status": "invalid or already used"}, status_code=400)
 
     thread_id = row[0]

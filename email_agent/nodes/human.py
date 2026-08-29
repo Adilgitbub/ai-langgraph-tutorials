@@ -8,12 +8,13 @@ from db import create_review_token
 import requests
 
 def test_send_human(state: EmailState, config: RunnableConfig):
+    print("--> 1. Inside test_send_human")
     thread_id = config["configurable"]["thread_id"]
     token = create_review_token(thread_id)
     print(f'use this toke --------------------{token}')
     base_url = os.getenv("FASTAPI_BASE_URL", "http://localhost:8000")
     approve_link = f"{base_url}/review/{token}/approve"
-    reject_link = f"{base_url}/review/{token}/reject"
+    reject_link = f"{base_url}/review/{token}/reject_form"
 
     reviewer_email = os.getenv("REVIEWER_EMAIL","adilshaikh5991@gmail.com")
     java_api_url = os.getenv("JAVA_EMAIL_API_URL", "http://localhost:5000/send-email")
@@ -39,6 +40,7 @@ def test_send_human(state: EmailState, config: RunnableConfig):
         "recipient_emails": [reviewer_email],
         "subject": f"[REVIEW] {state.get('subject', 'Newsletter')}",
         "body": html_with_links,
+        "is_html": True, 
         "cc_emails": []
     }
 
@@ -52,11 +54,13 @@ def test_send_human(state: EmailState, config: RunnableConfig):
         return {"test_send_status": "failed", "test_send_error": str(e)}
 
 def human_review(state: EmailState):
+    print("--> 1. Inside human review")
     result = interrupt({
         "subject": state.get("subject"),
         "message": "Awaiting approve/reject decision"
     })
     print(f'result -----------------------------------{result}')
+    print(f"RESUME PAYLOAD RECEIVED: {result!r} (type: {type(result)})")
     # approve comes as a plain string, reject comes as a dict with feedback
     if isinstance(result, dict):
         print('graph resumes.................')
@@ -74,13 +78,14 @@ def route_decision(state: EmailState):
     if (state["human_decision"] == "approve") :
         return "approve"
 
-    elif (state["human_reject_iteration"]>=2) :
+    elif state.get("human_reject_iteration", 0) >= 100:
         return "reject_exceeded"
     
     else :
         return  "reject_with_feedback"
 
 def reset_for_human_retry (state : EmailState) : 
+        print("--> 1. Inside reset_for_human_retry")
         return {
              "iteration": 0,
         "human_reject_iteration": state.get("human_reject_iteration", 0) + 1

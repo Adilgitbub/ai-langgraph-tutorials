@@ -10,6 +10,7 @@ def publish(state: EmailState):
 
 def manual_handling(state: EmailState):
     # TODO: notify internal team
+    print(f'manual ------------------- {state}')
     return {}
 
 def confirm_log(state: EmailState):

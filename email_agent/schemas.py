@@ -6,10 +6,10 @@ class EmailIntakeExtraction(BaseModel):
     bcc: Optional[List[str]] = Field(default=None, description="BCC email addresses, if mentioned")
     email_body_text: str = Field(description="The core newsletter content, cleaned up from the user's message")
     image_placement: Optional[str] = Field(default=None, description="Where the embedded image goes, e.g. 'middle of the text'")
-    use_snap_as_template: bool = Field(default=False, description="True if user referenced the snap for layout/formatting")
+    use_snap_as_template: bool = Field(default=False, description="True if user referenced the snap for layout/formatting or True if client_snap_path is present")
 
 class ComposeHtmlOutput(BaseModel):
-    body_html: str = Field(description="Plain HTML using <p> tags, unstyled content, exact wording preserved.")
+    body_html: str 
     bold_phrases: list[str] = Field(default_factory=list, description="Exact phrases that should appear bold, based on the reference snap's styling.")
     highlighted_phrases: list[dict] = Field(
         default_factory=list,

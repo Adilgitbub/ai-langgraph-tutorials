@@ -288,7 +288,7 @@ def auto_review(state: EmailState):
     }
 
 def route_evaluation(state: EmailState):
-    if state["evaluate"] == "pass" or state["iteration"] >= state["max_iteration"]:
+    if state["evaluate"] == "pass" or state.get('iteration',0) >= state.get('max_iteration',0):
         return "pass"
     return "failed"
 

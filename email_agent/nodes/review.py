@@ -5,6 +5,7 @@ from models import gamma_model1, lamma_model
 from utils import _encode_image
 
 def auto_review(state: EmailState):
+    print("--> 1. Inside autorieveew")
     use_snap = bool(state.get("client_snap_path")) and state.get("use_snap_as_template", True)
     html_body = state["html_body"]
 
@@ -47,6 +48,6 @@ def auto_review(state: EmailState):
     }
 
 def route_evaluation(state: EmailState):
-    if state["evaluate"] == "pass" or state["iteration"] >= state["max_iteration"]:
+    if state["evaluate"] == "pass" or state.get('iteration',0) >= state.get('max_iteration',0):
         return "pass"
     return "failed"
